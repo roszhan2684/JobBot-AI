@@ -22,5 +22,5 @@ cookies/
 *.db
 *.log
 logs/
-screenshots/
+/screenshots/
 *.pdf
