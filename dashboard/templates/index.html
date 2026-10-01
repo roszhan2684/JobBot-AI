@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobBot AI — Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+  nav { background: #1a1d2e; padding: 16px 32px; display: flex; align-items: center; gap: 24px; border-bottom: 1px solid #2a2d3e; }
+  nav h1 { font-size: 20px; font-weight: 700; color: #7c6af7; letter-spacing: -0.5px; }
+  nav a { color: #a0a0b0; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+  nav a:hover, nav a.active { background: #2a2d3e; color: #e0e0e0; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+  h2 { font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #f0f0f0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .card { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 12px; padding: 24px; text-align: center; }
+  .card .number { font-size: 40px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+  .card .label { font-size: 13px; color: #a0a0b0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card.applied .number { color: #4ade80; }
+  .card.pending .number { color: #fbbf24; }
+  .card.failed .number { color: #f87171; }
+  .card.skipped .number { color: #60a5fa; }
+  .card.today .number { color: #a78bfa; }
+  .card.score .number { color: #34d399; font-size: 32px; }
+
+  .sources-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 40px; }
+  .source-card { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 10px; padding: 16px; }
+  .source-card .name { font-weight: 600; margin-bottom: 8px; font-size: 15px; text-transform: capitalize; }
+  .source-card .bar-wrap { background: #2a2d3e; border-radius: 4px; height: 6px; margin: 6px 0; overflow: hidden; }
+  .source-card .bar { background: #7c6af7; height: 100%; border-radius: 4px; }
+  .source-card .meta { font-size: 12px; color: #a0a0b0; display: flex; justify-content: space-between; }
+
+  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-primary { background: #7c6af7; color: white; }
+  .btn-primary:hover { background: #6c5cf0; }
+  .btn-ghost { background: transparent; color: #a0a0b0; border: 1px solid #2a2d3e; }
+  .btn-ghost:hover { background: #2a2d3e; color: #e0e0e0; }
+
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot-applied { background: #4ade80; }
+  .dot-pending { background: #fbbf24; }
+  .dot-failed { background: #f87171; }
+
+  footer { text-align: center; padding: 32px; color: #505060; font-size: 13px; }
+</style>
+<script>
+  // Auto-refresh stats every 30 seconds
+  async function refreshStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      document.getElementById('stat-applied').textContent = data.applied || 0;
+      document.getElementById('stat-pending').textContent = data.pending || 0;
+      document.getElementById('stat-failed').textContent = data.failed || 0;
+      document.getElementById('stat-skipped').textContent = data.skipped || 0;
+      document.getElementById('stat-today').textContent = data.applied_today || 0;
+      document.getElementById('stat-total').textContent = data.total || 0;
+      const score = data.avg_score ? Math.round(data.avg_score) : '-';
+      document.getElementById('stat-score').textContent = score;
+    } catch(e) {}
+  }
+  setInterval(refreshStats, 30000);
+</script>
+</head>
+<body>
+<nav>
+  <h1>JobBot AI</h1>
+  <a href="/" class="active">Dashboard</a>
+  <a href="/jobs">All Jobs</a>
+  <a href="/jobs?status=applied">Applied</a>
+  <a href="/jobs?status=pending">Pending</a>
+  <a href="/jobs?status=failed">Failed</a>
+</nav>
+
+<div class="container">
+  <h2>Overview</h2>
+
+  <div class="grid">
+    <div class="card applied">
+      <div class="number" id="stat-applied">{{ stats.applied or 0 }}</div>
+      <div class="label">Applied</div>
+    </div>
+    <div class="card today">
+      <div class="number" id="stat-today">{{ stats.applied_today or 0 }}</div>
+      <div class="label">Applied Today</div>
+    </div>
+    <div class="card pending">
+      <div class="number" id="stat-pending">{{ stats.pending or 0 }}</div>
+      <div class="label">Queued</div>
+    </div>
+    <div class="card failed">
+      <div class="number" id="stat-failed">{{ stats.failed or 0 }}</div>
+      <div class="label">Failed</div>
+    </div>
+    <div class="card skipped">
+      <div class="number" id="stat-skipped">{{ stats.skipped or 0 }}</div>
+      <div class="label">Skipped</div>
+    </div>
+    <div class="card" style="border-color:#2a2d3e">
+      <div class="number" id="stat-total" style="color:#e0e0e0">{{ stats.total or 0 }}</div>
+      <div class="label">Total Scraped</div>
+    </div>
+    <div class="card score">
+      <div class="number" id="stat-score">{{ (stats.avg_score | round | int) if stats.avg_score else '-' }}</div>
+      <div class="label">Avg AI Score</div>
+    </div>
+  </div>
+
+  <h2>By Source</h2>
+  <div class="sources-grid">
+    {% for s in stats.sources %}
+    <div class="source-card">
+      <div class="name">{{ s.source }}</div>
+      <div class="bar-wrap">
+        <div class="bar" style="width: {{ ((s.applied / s.cnt * 100) if s.cnt else 0) | int }}%"></div>
+      </div>
+      <div class="meta">
+        <span>{{ s.cnt }} scraped</span>
+        <span>{{ s.applied }} applied</span>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:#606070; font-size:14px;">No jobs scraped yet. Start the bot to begin.</p>
+    {% endfor %}
+  </div>
+
+  <div class="cta-row">
+    <a href="/jobs?status=applied" class="btn btn-primary">View Applied Jobs</a>
+    <a href="/export/excel" class="btn btn-primary" style="background:#16a34a">⬇ Applied Jobs (Excel)</a>
+    <a href="/export/all-jobs" class="btn btn-primary" style="background:#0369a1">⬇ All Scraped Jobs (Excel)</a>
+    <a href="/jobs?status=pending" class="btn btn-ghost">View Queue</a>
+    <a href="/jobs?status=failed" class="btn btn-ghost">View Failed</a>
+    <a href="/api/run-logs" class="btn btn-ghost" target="_blank">Run Logs</a>
+  </div>
+</div>
+<footer>JobBot AI — running 24/7 • auto-refreshes every 30s</footer>
+</body>
+</html>

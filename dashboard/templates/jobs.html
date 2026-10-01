@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobBot AI — Jobs</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; }
+  nav { background: #1a1d2e; padding: 16px 32px; display: flex; align-items: center; gap: 24px; border-bottom: 1px solid #2a2d3e; }
+  nav h1 { font-size: 20px; font-weight: 700; color: #7c6af7; }
+  nav a { color: #a0a0b0; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+  nav a:hover, nav a.active { background: #2a2d3e; color: #e0e0e0; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .filters input { background: #1a1d2e; border: 1px solid #2a2d3e; color: #e0e0e0; padding: 8px 14px; border-radius: 8px; font-size: 14px; outline: none; width: 260px; }
+  .filters input:focus { border-color: #7c6af7; }
+  .filters form { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { background: #1a1d2e; border: 1px solid #2a2d3e; color: #a0a0b0; padding: 7px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+  .filter-btn:hover { border-color: #7c6af7; color: #e0e0e0; }
+  .filter-btn.active { background: #7c6af7; border-color: #7c6af7; color: white; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead tr { border-bottom: 2px solid #2a2d3e; }
+  th { padding: 12px 10px; text-align: left; color: #707080; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  td { padding: 14px 10px; border-bottom: 1px solid #1e2130; vertical-align: top; }
+  tr:hover td { background: #161926; }
+
+  .job-title { font-weight: 600; color: #f0f0f0; margin-bottom: 3px; }
+  .job-company { color: #a0a0b0; font-size: 13px; }
+  .job-link { color: #7c6af7; text-decoration: none; }
+  .job-link:hover { text-decoration: underline; }
+
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-applied { background: #14532d; color: #4ade80; }
+  .badge-pending { background: #451a03; color: #fbbf24; }
+  .badge-failed { background: #450a0a; color: #f87171; }
+  .badge-skipped { background: #1e3a5f; color: #60a5fa; }
+  .badge-captcha { background: #3b0764; color: #c084fc; }
+
+  .score { font-weight: 700; font-size: 16px; }
+  .score-high { color: #4ade80; }
+  .score-mid { color: #fbbf24; }
+  .score-low { color: #f87171; }
+  .score-na { color: #505060; }
+
+  .source-tag { font-size: 11px; color: #606070; background: #1e2130; padding: 2px 7px; border-radius: 4px; }
+
+  .actions { display: flex; gap: 6px; }
+  .act-btn { background: transparent; border: 1px solid #2a2d3e; color: #808090; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .act-btn:hover { border-color: #7c6af7; color: #e0e0e0; }
+  .act-btn.danger:hover { border-color: #f87171; color: #f87171; }
+
+  .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 24px; }
+  .page-btn { background: #1a1d2e; border: 1px solid #2a2d3e; color: #a0a0b0; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+  .page-btn:hover { border-color: #7c6af7; color: #e0e0e0; }
+  .page-btn.active { background: #7c6af7; border-color: #7c6af7; color: white; }
+
+  .empty { text-align: center; padding: 60px; color: #505060; }
+  .empty p { font-size: 16px; margin-bottom: 8px; }
+
+  .salary { color: #4ade80; font-size: 13px; }
+  .date { color: #606070; font-size: 12px; }
+</style>
+<script>
+async function skipJob(id) {
+  if (!confirm('Skip this job?')) return;
+  await fetch(`/api/jobs/${id}/skip`, {method: 'POST'});
+  location.reload();
+}
+async function resetJob(id) {
+  await fetch(`/api/jobs/${id}/reset`, {method: 'POST'});
+  location.reload();
+}
+</script>
+</head>
+<body>
+<nav>
+  <h1>JobBot AI</h1>
+  <a href="/">Dashboard</a>
+  <a href="/jobs" class="{% if not status_filter %}active{% endif %}">All Jobs</a>
+  <a href="/jobs?status=applied" class="{% if status_filter == 'applied' %}active{% endif %}">Applied</a>
+  <a href="/jobs?status=pending" class="{% if status_filter == 'pending' %}active{% endif %}">Pending</a>
+  <a href="/jobs?status=failed" class="{% if status_filter == 'failed' %}active{% endif %}">Failed</a>
+</nav>
+
+<div class="container">
+  <div class="filters">
+    <form method="get" action="/jobs">
+      <input type="text" name="search" placeholder="Search title, company, description..." value="{{ search or '' }}">
+      {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+      <button type="submit" class="filter-btn">Search</button>
+    </form>
+
+    <a href="/jobs" class="filter-btn {% if not status_filter and not source_filter %}active{% endif %}">All</a>
+    <a href="/jobs?status=applied" class="filter-btn {% if status_filter == 'applied' %}active{% endif %}">Applied</a>
+    <a href="/jobs?status=pending" class="filter-btn {% if status_filter == 'pending' %}active{% endif %}">Queued</a>
+    <a href="/jobs?status=failed" class="filter-btn {% if status_filter == 'failed' %}active{% endif %}">Failed</a>
+    <a href="/jobs?status=skipped" class="filter-btn {% if status_filter == 'skipped' %}active{% endif %}">Skipped</a>
+  </div>
+
+  {% if jobs %}
+  <table>
+    <thead>
+      <tr>
+        <th>Job</th>
+        <th>Source</th>
+        <th>Location</th>
+        <th>Salary</th>
+        <th>Score</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr>
+        <td>
+          <div class="job-title">
+            <a href="{{ job.url }}" target="_blank" class="job-link">{{ job.title }}</a>
+          </div>
+          <div class="job-company">{{ job.company }}</div>
+        </td>
+        <td><span class="source-tag">{{ job.source }}</span></td>
+        <td style="color:#a0a0b0; font-size:13px;">{{ job.location or '—' }}</td>
+        <td class="salary">{{ job.salary or '—' }}</td>
+        <td>
+          {% if job.ai_score > 0 %}
+            <span class="score {% if job.ai_score >= 80 %}score-high{% elif job.ai_score >= 60 %}score-mid{% else %}score-low{% endif %}">
+              {{ job.ai_score }}
+            </span>
+          {% else %}
+            <span class="score score-na">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge badge-{{ job.status }}">{{ job.status }}</span>
+          {% if job.error_message %}
+            <div style="color:#f87171; font-size:11px; margin-top:4px;" title="{{ job.error_message }}">
+              {{ job.error_message[:50] }}{% if job.error_message|length > 50 %}...{% endif %}
+            </div>
+          {% endif %}
+        </td>
+        <td class="date">
+          {% if job.applied_date %}
+            {{ job.applied_date[:10] }}
+          {% else %}
+            {{ job.scraped_date[:10] if job.scraped_date else '—' }}
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a href="{{ job.url }}" target="_blank" class="act-btn">View</a>
+            {% if job.status != 'skipped' %}
+            <button class="act-btn danger" onclick="skipJob({{ job.id }})">Skip</button>
+            {% endif %}
+            {% if job.status in ('failed', 'skipped') %}
+            <button class="act-btn" onclick="resetJob({{ job.id }})">Retry</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="pagination">
+    {% if page > 1 %}
+    <a href="?page={{ page - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="page-btn">← Prev</a>
+    {% endif %}
+    <span class="page-btn active">Page {{ page }}</span>
+    {% if jobs|length == 50 %}
+    <a href="?page={{ page + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="page-btn">Next →</a>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <p>No jobs found.</p>
+    <p style="font-size:14px;">Start the bot to scrape and apply to jobs.</p>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

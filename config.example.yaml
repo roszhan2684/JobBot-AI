@@ -1,0 +1,76 @@
+# JobBot AI configuration template.
+# Copy to config.yaml (git-ignored) and fill in your own details.
+
+user:
+  first_name: ''
+  last_name: ''
+  email: ''
+  phone: ''
+  location: ''
+  city: ''
+  state: ''
+  zip_code: ''
+  country: ''
+  linkedin_url: ''
+  github_url: ''
+  portfolio_url: ''
+  resume_text: ''
+  resume_path: ''
+  years_experience: ''
+  work_authorization: ''
+  requires_sponsorship: ''
+  desired_salary: ''
+  salary_currency: ''
+  willing_to_relocate: ''
+  available_start_date: ''
+cover_letter_template: ''
+job_preferences:
+  titles:
+  - ''
+  keywords:
+  - ''
+  domain: ''
+  locations:
+  - ''
+  remote_only: false
+  experience_levels:
+  - ''
+  min_salary: 100000
+  exclude_companies: []
+  exclude_keywords:
+  - ''
+credentials:
+  linkedin:
+    email: ''
+    password: ''
+  indeed:
+    email: ''
+    password: ''
+  dice:
+    email: ''
+    password: ''
+  glassdoor:
+    email: ''
+    password: ''
+  jobright:
+    email: ''
+    password: ''
+job_sources:
+- ''
+greenhouse_companies: []
+settings:
+  max_applications_per_day: 50
+  apply_delay_min: 20
+  apply_delay_max: 45
+  min_job_score: 65
+  headless_browser: true
+  save_screenshots: true
+  screenshots_dir: ''
+  dashboard_host: ''
+  dashboard_port: 8080
+  scrape_interval_hours: 1
+  jobs_per_source: 50
+  retry_failed: true
+  max_retries: 2
+  log_level: ''
+  log_file: ''
